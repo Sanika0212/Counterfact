@@ -5,9 +5,9 @@ import httpx
 import pytest
 
 import counterfact.runtime as cf
-from counterfact.bench.evaluate import predict, run_benchmark, summarize
+from counterfact.bench.evaluate import evaluate, predict, run_benchmark, summarize
 from counterfact.bench.faultbench import FAMILIES, VALID, erred_keys, generate
-from counterfact.judge import Judge, load_env, trace_text
+from counterfact.judge import Judge, JudgeError, load_env, trace_text
 
 
 @pytest.fixture(scope="module")
@@ -188,3 +188,44 @@ def test_benchmark_merges_new_methods_into_existing_results(tmp_path: Path) -> N
     other = generate(per_family=1, families=("calc",), seed=5)
     rows = run_benchmark(other, tmp_path, ["random"])
     assert [r["method"] for r in rows] == ["random"]
+
+
+def _scripted(responses: list[httpx.Response], seen: list[float]) -> Judge:
+    queue = list(responses)
+    client = httpx.Client(transport=httpx.MockTransport(lambda request: queue.pop(0)))
+    return Judge("openai", "tiny", "sk-test-value", client=client, sleep=seen.append)
+
+
+def test_judge_retries_rate_limits_then_succeeds(instances) -> None:
+    waits: list[float] = []
+    ok = httpx.Response(
+        200,
+        json={
+            "choices": [{"message": {"content": '{"step": 0}'}}],
+            "usage": {"prompt_tokens": 5, "completion_tokens": 2},
+        },
+    )
+    limited = httpx.Response(
+        429, headers={"retry-after": "0.5"}, json={"error": {"code": "rate_limit_exceeded"}}
+    )
+    judge = _scripted([limited, httpx.Response(503, text="busy"), ok], waits)
+    assert judge.blame(instances[0].failing_run()) is not None
+    assert waits == [0.5, 2.0]
+
+
+def test_judge_fails_fast_without_credit(instances) -> None:
+    waits: list[float] = []
+    broke = httpx.Response(
+        429,
+        json={"error": {"code": "insufficient_quota", "message": "You have no credits remaining."}},
+    )
+    judge = _scripted([broke], waits)
+    with pytest.raises(JudgeError, match="insufficient_quota: You have no credits") as info:
+        judge.blame(instances[0].failing_run())
+    assert "sk-test-value" not in str(info.value)
+    assert waits == []
+    lines: list[str] = []
+    rows = evaluate(instances[:2], ["last", "llm_judge"], judge=_scripted([broke], []),
+                    progress=lines.append)  # fmt: skip
+    assert {p.method for p in rows} == {"last"}
+    assert any("llm_judge: skipped" in line for line in lines)

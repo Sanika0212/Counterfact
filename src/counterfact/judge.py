@@ -13,8 +13,11 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -59,6 +62,28 @@ def trace_text(run: Run, max_chars: int = 400) -> str:
     return "\n".join(lines)
 
 
+class JudgeError(RuntimeError):
+    """The model API refused the request (no credit, bad key, unknown model, ...)."""
+
+
+# Statuses worth retrying: rate limits, overload and transient server errors.
+_RETRY = {429, 500, 502, 503, 504, 529}
+# 429s that retrying cannot fix.
+_FATAL_CODES = {"insufficient_quota", "credit_balance_exhausted", "billing_hard_limit_reached"}
+
+
+def _api_error(response: httpx.Response) -> tuple[str, str]:
+    """``(code, message)`` from a provider error body, never echoing request headers."""
+    try:
+        error = response.json().get("error", {})
+    except ValueError:
+        return "", response.reason_phrase
+    if not isinstance(error, dict):
+        return "", str(error)[:300]
+    code = str(error.get("code") or error.get("type") or "")
+    return code, str(error.get("message") or "")[:300]
+
+
 @dataclass
 class Judge:
     provider: str
@@ -68,6 +93,8 @@ class Judge:
     calls: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
+    max_retries: int = 4
+    sleep: Callable[[float], None] = time.sleep
 
     @classmethod
     def from_env(cls, env_file: str | Path = ".env") -> Judge | None:
@@ -91,38 +118,49 @@ class Judge:
             self.client = httpx.Client(timeout=60.0)
         return self.client
 
+    def _post(self, url: str, headers: dict[str, str], payload: dict[str, Any]) -> Any:
+        """POST with retries on rate limits and transient errors; JudgeError otherwise."""
+        for attempt in range(self.max_retries + 1):
+            response = self._http().post(url, headers=headers, json=payload)
+            if response.is_success:
+                return response.json()
+            code, message = _api_error(response)
+            retryable = response.status_code in _RETRY and code not in _FATAL_CODES
+            if not retryable or attempt == self.max_retries:
+                detail = f"{code}: {message}" if code else message
+                raise JudgeError(f"{self.provider} API returned {response.status_code} ({detail})")
+            wait = response.headers.get("retry-after")
+            self.sleep(float(wait) if wait and wait.replace(".", "", 1).isdigit() else 2.0**attempt)
+        raise AssertionError("unreachable")  # pragma: no cover
+
     def ask(self, prompt: str) -> str:
         self.calls += 1
         if self.provider == "anthropic":
-            response = self._http().post(
+            body = self._post(
                 "https://api.anthropic.com/v1/messages",
-                headers={"x-api-key": self.api_key, "anthropic-version": "2023-06-01"},
-                json={
+                {"x-api-key": self.api_key, "anthropic-version": "2023-06-01"},
+                {
                     "model": self.model,
                     "max_tokens": 64,
                     "temperature": 0,
                     "messages": [{"role": "user", "content": prompt}],
                 },
             )
-            response.raise_for_status()
-            body = response.json()
             usage = body.get("usage", {})
             self.input_tokens += usage.get("input_tokens", 0)
             self.output_tokens += usage.get("output_tokens", 0)
             return "".join(b.get("text", "") for b in body.get("content", []))
         base = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
-        response = self._http().post(
+        body = self._post(
             f"{base}/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json={
+            {"Authorization": f"Bearer {self.api_key}"},
+            {
                 "model": self.model,
                 "temperature": 0,
                 "max_tokens": 64,
                 "messages": [{"role": "user", "content": prompt}],
             },
         )
-        response.raise_for_status()
-        body = response.json()
         usage = body.get("usage", {})
         self.input_tokens += usage.get("prompt_tokens", 0)
         self.output_tokens += usage.get("completion_tokens", 0)

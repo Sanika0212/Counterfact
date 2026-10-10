@@ -13,7 +13,7 @@ from typing import Any, Literal
 
 from counterfact.attribution import bisect, blame, suspicion, wilson_interval
 from counterfact.bench.faultbench import Instance
-from counterfact.judge import Judge
+from counterfact.judge import Judge, JudgeError
 from counterfact.model import Run
 
 # Ablations of blame: how calls are matched on replay x whether recorded noise is reused.
@@ -124,10 +124,16 @@ def evaluate(
     judge: Judge | None = None,
     progress: Callable[[str], None] | None = None,
 ) -> list[Prediction]:
-    predictions = []
+    predictions: list[Prediction] = []
     for method in methods:
-        for instance in instances:
-            predictions.append(predict(method, instance, samples=samples, judge=judge))
+        try:
+            batch = [predict(method, i, samples=samples, judge=judge) for i in instances]
+        except JudgeError as exc:
+            # A refused API call (no credit, bad key) skips the judge, not the benchmark.
+            if progress is not None:
+                progress(f"{method}: skipped, {exc}")
+            continue
+        predictions.extend(batch)
         if progress is not None:
             done = [p for p in predictions if p.method == method]
             acc = sum(p.correct for p in done) / max(len(done), 1)

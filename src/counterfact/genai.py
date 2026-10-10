@@ -1,8 +1,9 @@
 """OpenTelemetry GenAI attributes derived from recorded HTTP exchanges.
 
 Attribute names follow the OpenTelemetry GenAI semantic conventions, which are
-still in Development status; :data:`SEMCONV_VERSION` records the version the
-names were taken from.
+still in Development status and now live in the
+``open-telemetry/semantic-conventions-genai`` repository. :data:`SEMCONV_VERSION`
+records the semantic-conventions release the names were taken from.
 """
 
 from __future__ import annotations

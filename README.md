@@ -271,8 +271,10 @@ If both keys are set, `COUNTERFACT_JUDGE_PROVIDER` picks the provider.
 - **FaultBench is synthetic.** Its ground truth is known by construction, and every run
   has exactly one fault. The numbers show the mechanism works; they don't measure
   accuracy on your agent.
-- **The OpenTelemetry GenAI conventions are still in Development status.** Attribute
-  names follow version 1.41 and may change.
+- **The OpenTelemetry GenAI conventions are still in Development status.** They now
+  live in their own repository (`open-telemetry/semantic-conventions-genai`), which has
+  no tagged release yet. Counterfact's attribute names come from semantic-conventions
+  1.41 and may change.
 
 ## Development
 

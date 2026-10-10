@@ -61,8 +61,8 @@ function show(id) {
   document.querySelectorAll('.bar').forEach(b => b.classList.toggle('sel', b.dataset.id === id));
   const s = spans[id]; if (!s) return;
   const esc = t => String(t).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  const b = s.boundary ? `<div class="sub">boundary <b>${esc(s.boundary.key)}</b> · source ${esc(s.boundary.source)} · seed ${s.boundary.seed}</div>` : '';
-  panel.innerHTML = `<h2>${esc(s.name)}</h2><div class="sub">${esc(s.kind)} · ${s.ms.toFixed(1)} ms · ${esc(s.status)}</div>${b}` +
+  const b = s.boundary ? `<div class="sub">boundary <b>${esc(s.boundary.key)}</b>, source ${esc(s.boundary.source)}, seed ${s.boundary.seed}</div>` : '';
+  panel.innerHTML = `<h2>${esc(s.name)}</h2><div class="sub">${esc(s.kind)}, ${s.ms.toFixed(1)} ms, ${esc(s.status)}</div>${b}` +
     (s.error ? `<pre>${esc(s.error)}</pre>` : '') +
     `<h2 style="margin-top:10px">Input</h2><pre>${esc(JSON.stringify(s.input, null, 2))}</pre>` +
     `<h2>Output</h2><pre>${esc(JSON.stringify(s.output, null, 2))}</pre>` +
@@ -154,7 +154,7 @@ def _blame_section(report: BlameReport) -> str:
     rows = "".join(
         f"<tr class='{'culprit' if e.key == culprit else ''}'><td>{html.escape(e.key)}</td>"
         f"<td class='num'>{e.successes}/{e.trials}</td><td class='num'>{e.success_rate:.0%}</td>"
-        f"<td class='num'>{e.low:.0%}–{e.high:.0%}</td></tr>"
+        f"<td class='num'>{e.low:.0%} to {e.high:.0%}</td></tr>"
         for e in effects
     )
     verdict = (
@@ -173,8 +173,8 @@ def _blame_section(report: BlameReport) -> str:
 def _diff_section(diff: RunDiff, right: Run) -> str:
     rows = []
     for row in diff.rows:
-        left_key = html.escape(row.left.key) if row.left else "—"
-        right_key = html.escape(row.right.key) if row.right else "—"
+        left_key = html.escape(row.left.key) if row.left else "-"
+        right_key = html.escape(row.right.key) if row.right else "-"
         rows.append(f"<tr><td>{left_key}</td><td>{right_key}</td><td>{row.status}</td></tr>")
     first = diff.first_divergence
     note = "Runs are identical." if first is None else f"First divergence at row {first}."
@@ -222,10 +222,10 @@ def render(run: Run, *, blame: BlameReport | None = None, compare: Run | None = 
     return (
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
         "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-        f"<title>Counterfact · {html.escape(run.name)}</title><style>{_CSS}</style></head><body>"
+        f"<title>Counterfact: {html.escape(run.name)}</title><style>{_CSS}</style></head><body>"
         f"<header><h1>{html.escape(run.name)} <span class='chip {status}'>{verdict}</span></h1>"
-        f"<div class='sub'>run {run.run_id} · {len(run.boundaries)} boundary calls · "
-        f"{len(run.spans)} spans · seed {run.seed}</div></header>"
+        f"<div class='sub'>run {run.run_id}, {len(run.boundaries)} boundary calls, "
+        f"{len(run.spans)} spans, seed {run.seed}</div></header>"
         f"<main><div>{''.join(sections)}</div><aside><section id='inspector'>"
         "<p class='sub'>Select a span.</p></section></aside></main>"
         f"<script id='cf-spans' type='application/json'>{payload}</script><script>{_JS}</script>"

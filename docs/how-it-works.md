@@ -88,7 +88,7 @@ about log₂(steps) + 2 replays.
 
 ## Diff
 
-`diff_runs` aligns two runs' boundary calls by name with Needleman–Wunsch alignment,
+`diff_runs` aligns two runs' boundary calls by name with Needleman-Wunsch alignment,
 so inserted, removed or repeated calls don't shift every later row. Each aligned pair is
 then classified as `same`, `input-changed`, `output-changed`, `only-left` or
 `only-right`. The first row that isn't `same` is where the runs diverge.

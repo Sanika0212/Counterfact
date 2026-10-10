@@ -12,7 +12,7 @@ right, and everything else had happened exactly as it did, would the run have pa
 answers by replaying the agent with that one step repaired.
 
 On FaultBench, 180 failing runs with known root causes, this finds the culprit in
-**97%** of runs (95% CI 94–99%). Picking the first error or the last step finds it in 18%.
+**97%** of runs (95% CI 94% to 99%). Picking the first error or the last step finds it in 18%.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/blame-dark.gif">

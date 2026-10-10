@@ -8,11 +8,11 @@ boundary, :func:`rng` returns a ``random.Random`` seeded with that noise.
 A :class:`Plan` decides how each boundary is resolved. This is Pearl's three-step
 counterfactual for agent traces:
 
-* **Abduction:** a recorded run supplies a tape of outputs plus the noise seed of
+- **Abduction:** a recorded run supplies a tape of outputs plus the noise seed of
   every boundary.
-* **Action:** :class:`Replace` or :class:`Resample` interventions change chosen
+- **Action:** :class:`Replace` or :class:`Resample` interventions change chosen
   boundaries.
-* **Prediction:** every other boundary reuses its recorded output when its inputs
+- **Prediction:** every other boundary reuses its recorded output when its inputs
   are unchanged (a memo hit). When its inputs changed, it re-executes with the
   *same* noise seed, so a fault that was caused downstream is reproduced, not
   accidentally healed.

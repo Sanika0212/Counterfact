@@ -2,10 +2,10 @@
 
 Fixtures:
 
-* ``cf_record(agent, check=None, name=None)``: run an agent under recording and
+- ``cf_record(agent, check=None, name=None)``: run an agent under recording and
   return the :class:`~counterfact.model.Run`. With ``--counterfact-db PATH`` every
   recorded run is also saved for later inspection (``counterfact report``).
-* ``cf_tape(agent, name, check=None)``: replay the tape ``tests/tapes/<name>.tape.json``
+- ``cf_tape(agent, name, check=None)``: replay the tape ``tests/tapes/<name>.tape.json``
   (or ``--counterfact-tapes DIR``), recording it first if it does not exist yet. After
   the first recording the test runs offline, with no API keys. Use
   ``--counterfact-record`` to re-record.

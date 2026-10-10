@@ -91,9 +91,17 @@ class Tape:
 
     def __post_init__(self) -> None:
         self._by_key = {event.key: event for event in self.events}
+        self._by_content: dict[tuple[str, str], list[TapeEvent]] = {}
+        for event in self.events:
+            self._by_content.setdefault((event.name, event.fingerprint), []).append(event)
 
     def get(self, key: str) -> TapeEvent | None:
         return self._by_key.get(key)
+
+    def find(self, name: str, fingerprint: str, nth: int = 0) -> TapeEvent | None:
+        """The ``nth`` recorded call of ``name`` with exactly these inputs."""
+        matches = self._by_content.get((name, fingerprint), [])
+        return matches[nth] if nth < len(matches) else None
 
     def keys(self) -> list[str]:
         return [event.key for event in self.events]

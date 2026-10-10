@@ -33,7 +33,7 @@ from collections.abc import Awaitable, Callable, Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
-from typing import Any, ParamSpec, TypeVar, overload
+from typing import Any, Literal, ParamSpec, TypeVar, overload
 
 from counterfact.jsonable import fingerprint, to_jsonable
 from counterfact.model import Boundary, Run, Span, SpanKind, Tape
@@ -82,14 +82,29 @@ class Plan:
     base_seed: int = 0
     interventions: Mapping[str, Intervention] = field(default_factory=dict)
     strict: bool = False
+    reuse_noise: bool = True  # False = ablation: memo misses draw fresh noise
+    match: Literal["content", "position"] = "content"  # how misses find their recording
 
     @classmethod
     def replay(cls, tape: Tape, *, strict: bool = False) -> Plan:
         return cls(memo=tape, seeds=tape.seeds(), strict=strict)
 
     @classmethod
-    def counterfactual(cls, tape: Tape, interventions: Mapping[str, Intervention]) -> Plan:
-        return cls(memo=tape, seeds=tape.seeds(), interventions=dict(interventions))
+    def counterfactual(
+        cls,
+        tape: Tape,
+        interventions: Mapping[str, Intervention],
+        *,
+        reuse_noise: bool = True,
+        match: Literal["content", "position"] = "content",
+    ) -> Plan:
+        return cls(
+            memo=tape,
+            seeds=tape.seeds(),
+            interventions=dict(interventions),
+            reuse_noise=reuse_noise,
+            match=match,
+        )
 
     def seed_for(self, key: str) -> int:
         if key in self.seeds:
@@ -109,6 +124,7 @@ class _RunState:
     plan: Plan
     on_span: Callable[[Span], None] | None
     occurrences: Counter[str] = field(default_factory=Counter)
+    content_seen: Counter[tuple[str, str]] = field(default_factory=Counter)
     next_index: int = 0
     lock: threading.Lock = field(default_factory=threading.Lock)
 
@@ -119,6 +135,12 @@ class _RunState:
             index = self.next_index
             self.next_index += 1
         return index, f"{name}#{occurrence}"
+
+    def content_occurrence(self, name: str, fingerprint: str) -> int:
+        with self.lock:
+            nth = self.content_seen[(name, fingerprint)]
+            self.content_seen[(name, fingerprint)] += 1
+        return nth
 
     def add(self, span: Span) -> None:
         with self.lock:
@@ -203,10 +225,19 @@ class _Call:
             self.seed = _salted(self.seed, intervention.salt)
         elif state.plan.memo is not None:
             event = state.plan.memo.get(self.key)
+            nth = state.content_occurrence(name, self.fingerprint)
             if event is not None and event.fingerprint == self.fingerprint:
                 self.recorded = event
+            elif state.plan.match == "content" and (
+                moved := state.plan.memo.find(name, self.fingerprint, nth)
+            ):
+                # Same call, different position (e.g. a reordered plan): reuse it.
+                self.recorded = moved
+                self.seed = moved.seed
             elif state.plan.strict:
                 raise Divergence(self.key, event.fingerprint if event else None, self.fingerprint)
+            elif event is not None and not state.plan.reuse_noise:
+                self.seed = _salted(self.seed, 7919)
 
     def source(self) -> str:
         if self.replacement is not None:

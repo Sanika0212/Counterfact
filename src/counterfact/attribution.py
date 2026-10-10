@@ -105,6 +105,8 @@ def blame(
     budget: int | None = None,
     candidates: Sequence[str] | None = None,
     repair: Repair = resample_repair,
+    reuse_noise: bool = True,
+    match: Literal["content", "position"] = "content",
 ) -> BlameReport:
     """Find the earliest step whose repair alone makes the run pass.
 
@@ -119,6 +121,11 @@ def blame(
             :func:`suspicion` order within ``budget``.
         candidates: restrict to these boundary keys.
         repair: which intervention to apply (default: resample the step's noise).
+        reuse_noise: hold every other step's noise fixed (abduction). ``False`` is an
+            ablation in which re-executed steps draw fresh noise.
+        match: ``"content"`` lets a re-executed call reuse the recording of the same
+            call (same name and inputs) even if it moved position; ``"position"``
+            (ablation) matches by occurrence only.
     """
     tape = failing.tape()
     order = [event.key for event in tape.events]
@@ -138,7 +145,9 @@ def blame(
             run = execute(
                 agent,
                 name=f"{failing.name}:do({key})",
-                plan=Plan.counterfactual(tape, {key: repair(key, sample)}),
+                plan=Plan.counterfactual(
+                    tape, {key: repair(key, sample)}, reuse_noise=reuse_noise, match=match
+                ),
                 check=check,
                 parent_run_id=failing.run_id,
                 meta={"intervention": key, "sample": sample},

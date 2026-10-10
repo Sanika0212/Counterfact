@@ -1,8 +1,8 @@
 """LLM-as-judge baseline: ask a model which step caused a failure.
 
 The model reads the trace (inputs and outputs of every step) and names the root
-cause. This is the approach most 2026 failure-attribution work builds on, and it
-serves as the strongest non-interventional baseline for Counterfact's ``blame``.
+cause. Reading the trace is the usual approach to automated failure attribution,
+so it serves as the non-interventional baseline for Counterfact's ``blame``.
 
 Keys are read from the environment or a local ``.env`` file. They are never logged
 or stored.

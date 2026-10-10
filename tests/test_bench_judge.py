@@ -178,3 +178,13 @@ def test_content_matching_follows_reordered_calls() -> None:
     )
     if [s.input for s in by_position.boundaries[1:]] != [s.input for s in first.boundaries[1:]]:
         assert by_position.outcome != first.outcome
+
+
+def test_benchmark_merges_new_methods_into_existing_results(tmp_path: Path) -> None:
+    instances = generate(per_family=1, families=("calc",))
+    run_benchmark(instances, tmp_path, ["last"])
+    rows = run_benchmark(instances, tmp_path, ["blame_position"])
+    assert [r["method"] for r in rows] == ["last", "blame_position"]
+    other = generate(per_family=1, families=("calc",), seed=5)
+    rows = run_benchmark(other, tmp_path, ["random"])
+    assert [r["method"] for r in rows] == ["random"]

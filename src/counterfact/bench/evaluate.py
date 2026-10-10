@@ -9,14 +9,32 @@ from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from counterfact.attribution import bisect, blame, suspicion, wilson_interval
 from counterfact.bench.faultbench import Instance
 from counterfact.judge import Judge
 from counterfact.model import Run
 
-METHODS = ("last", "first_error", "random", "suspicion", "llm_judge", "blame", "bisect")
+# Ablations of blame: how calls are matched on replay x whether recorded noise is reused.
+ABLATIONS: dict[str, tuple[Literal["content", "position"], bool]] = {
+    "blame": ("content", True),
+    "blame_position": ("position", True),
+    "blame_fresh_noise": ("content", False),
+    "blame_position_fresh_noise": ("position", False),
+}
+METHODS = (
+    "last",
+    "first_error",
+    "random",
+    "suspicion",
+    "llm_judge",
+    "blame",
+    "bisect",
+    "blame_position",
+    "blame_fresh_noise",
+    "blame_position_fresh_noise",
+)
 LABELS = {
     "last": "Last step (symptom)",
     "first_error": "First error-flagged step",
@@ -25,6 +43,9 @@ LABELS = {
     "llm_judge": "LLM judge reads the trace",
     "blame": "Counterfact blame (intervention)",
     "bisect": "Counterfact bisect (needs a passing run)",
+    "blame_position": "Blame, positional matching",
+    "blame_fresh_noise": "Blame, fresh noise",
+    "blame_position_fresh_noise": "Blame, positional matching + fresh noise",
 }
 
 
@@ -69,8 +90,9 @@ def predict(
         if judge is None:
             raise ValueError("llm_judge needs an API key (see README: Configuring the LLM judge)")
         predicted = judge.blame(failing)
-    elif method == "blame":
-        report = blame(agent, failing, check, samples=samples)
+    elif method in ABLATIONS:
+        match, reuse_noise = ABLATIONS[method]
+        report = blame(agent, failing, check, samples=samples, match=match, reuse_noise=reuse_noise)
         predicted = report.culprit.key if report.culprit else None
         replays = report.replays
     elif method == "bisect":
@@ -157,23 +179,39 @@ def run_benchmark(
     judge: Judge | None = None,
     progress: Callable[[str], None] | None = None,
 ) -> list[dict[str, Any]]:
+    """Evaluate ``methods`` and write results.json / results.md to ``out_dir``.
+
+    If ``out_dir`` already holds results for the same instances, predictions of the
+    methods not re-run here are kept, so one method (say the LLM judge) can be added
+    to an existing run without recomputing the others.
+    """
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     predictions = evaluate(instances, methods, samples=samples, judge=judge, progress=progress)
-    rows, table = summarize(predictions)
-    payload = {
-        "instances": [asdict(i) for i in instances],
-        "predictions": [asdict(p) for p in predictions],
-        "summary": rows,
-        "judge": None
-        if judge is None
-        else {
+    records = [asdict(i) for i in instances]
+    judge_info: dict[str, Any] | None = None
+    if judge is not None:
+        judge_info = {
             "provider": judge.provider,
             "model": judge.model,
             "calls": judge.calls,
             "input_tokens": judge.input_tokens,
             "output_tokens": judge.output_tokens,
-        },
+        }
+    previous = out / "results.json"
+    if previous.exists():
+        old = json.loads(previous.read_text())
+        if old.get("instances") == json.loads(json.dumps(records)):
+            kept = [Prediction(**p) for p in old["predictions"] if p["method"] not in methods]
+            predictions = kept + predictions
+            if judge_info is None and any(p.method == "llm_judge" for p in kept):
+                judge_info = old.get("judge")
+    rows, table = summarize(predictions)
+    payload = {
+        "instances": records,
+        "predictions": [asdict(p) for p in predictions],
+        "summary": rows,
+        "judge": judge_info,
     }
     (out / "results.json").write_text(json.dumps(payload, indent=1) + "\n")
     (out / "results.md").write_text(table)

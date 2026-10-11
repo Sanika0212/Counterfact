@@ -25,13 +25,13 @@ uv run counterfact demo --out demo
 
 ## Ground rules
 
-- **Tests never touch the network or a paid API.** Model SDKs are exercised against
-  `httpx.MockTransport`; the LLM judge is tested with a fake client.
-- **Replay is exact.** A recorded run replayed with `Plan.replay(tape, strict=True)` must
-  reproduce its outcome without a single live call (`assert_replays`).
-- **Results come from runs.** Numbers in the README must be reproducible with
-  `counterfact bench` and `scripts/make_figures.py`.
-- **No secrets in recordings.** New capture paths go through `Redactor` before
-  anything reaches the store.
-- Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`,
-  `docs:`, `test:`, `chore:`, `ci:`).
+1. **Tests never touch the network or a paid API.** Model SDKs are exercised against
+   `httpx.MockTransport`; the LLM judge is tested with a fake client.
+2. **Replay is exact.** A recorded run replayed with `Plan.replay(tape, strict=True)` must
+   reproduce its outcome without a single live call (`assert_replays`).
+3. **Results come from runs.** Numbers in the README must be reproducible with
+   `counterfact bench` and `scripts/make_figures.py`.
+4. **No secrets in recordings.** New capture paths go through `Redactor` before
+   anything reaches the store.
+5. Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`,
+   `docs:`, `test:`, `chore:`, `ci:`).

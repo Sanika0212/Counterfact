@@ -18,10 +18,10 @@ Each step can fail with probability `fault_p` (0.12 in the reported results). Fa
 are **silent**: the step returns a plausible but wrong value and raises nothing. Some
 examples:
 
-- a lookup returns a value that is off by a few;
-- a planner drops a topic;
-- a rerank puts the wrong note first;
-- a respond step garbles the number.
+1. a lookup returns a value that is off by a few;
+2. a planner drops a topic;
+3. a rerank puts the wrong note first;
+4. a respond step garbles the number.
 
 Correct steps also vary harmlessly, the way model outputs do. A plan may list facts in
 any order, and a rewrite picks one of several paraphrases. A method therefore can't
@@ -79,10 +79,10 @@ added once a key is configured.
 FaultBench shows that intervention identifies silent root causes in cases where
 reading a trace for errors or symptoms cannot. It has known limits:
 
-- it is synthetic;
-- every instance has a single fault;
-- agents are fully replayable;
-- noise is explicit.
+1. it is synthetic;
+2. every instance has a single fault;
+3. agents are fully replayable;
+4. noise is explicit.
 
 Real agents built on hosted models give up some of that last property (see Limits in
 the README). Multi-fault runs are a natural extension. With `strategy="all"`, blame

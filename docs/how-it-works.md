@@ -68,10 +68,10 @@ step.
 
 Strategies:
 
-- `earliest` (default) stops at the first sufficient step, using the fewest replays.
-- `all` measures every step. The report and the animation use this mode.
-- `ranked` tries steps in order of a cheap suspicion score (errors, empty outputs,
-  position), within an optional `budget`.
+1. `earliest` (default) stops at the first sufficient step, using the fewest replays.
+2. `all` measures every step. The report and the animation use this mode.
+3. `ranked` tries steps in order of a cheap suspicion score (errors, empty outputs,
+   position), within an optional `budget`.
 
 Why "earliest sufficient" rather than "most effective"? A wrong value usually flows
 downstream, so the root cause comes first. Repairing a later step rarely helps,

@@ -22,23 +22,23 @@ in 63%, and picking the first error or the last step finds it in 18%.
 
 ## What you get
 
-- **Record and replay.** Wrap tools and model calls as *boundaries*, or capture every
-  model API call made through an httpx-based SDK (current OpenAI and Anthropic SDKs
-  included) with one line. A recorded run replays exactly, offline, with no API keys.
-- **Blame.** Find the earliest step whose repair alone makes the run pass, with a
-  confidence interval for every step.
-- **Bisect.** Given a failing and a passing run of the same task, binary-search for the
-  step where they part ways. This needs no repair at all.
-- **Diff.** Align two runs call by call, even when steps were added, removed or moved.
-- **Report.** A single HTML file with the timeline, blame bars, run diff and a span
-  inspector. It works offline, in light or dark mode.
-- **Agent tests.** pytest fixtures that record a tape once and replay it in CI, plus
-  contract assertions: allowed tools, call budgets, call order, no secrets in prompts.
-- **OpenTelemetry.** Export runs as OTLP using the GenAI semantic conventions, or import
-  OTLP traces for viewing and diffing.
-- **A store that stays small.** The content-addressed SQLite store keeps each repeated
-  prompt prefix once. It redacts keys, tokens, emails, phone numbers and card numbers
-  before a run is written.
+1. **Record and replay.** Wrap tools and model calls as *boundaries*, or capture every
+   model API call made through an httpx-based SDK (current OpenAI and Anthropic SDKs
+   included) with one line. A recorded run replays exactly, offline, with no API keys.
+2. **Blame.** Find the earliest step whose repair alone makes the run pass, with a
+   confidence interval for every step.
+3. **Bisect.** Given a failing and a passing run of the same task, binary-search for the
+   step where they part ways. This needs no repair at all.
+4. **Diff.** Align two runs call by call, even when steps were added, removed or moved.
+5. **Report.** A single HTML file with the timeline, blame bars, run diff and a span
+   inspector. It works offline, in light or dark mode.
+6. **Agent tests.** pytest fixtures that record a tape once and replay it in CI, plus
+   contract assertions: allowed tools, call budgets, call order, no secrets in prompts.
+7. **OpenTelemetry.** Export runs as OTLP using the GenAI semantic conventions, or import
+   OTLP traces for viewing and diffing.
+8. **A store that stays small.** The content-addressed SQLite store keeps each repeated
+   prompt prefix once. It redacts keys, tokens, emails, phone numbers and card numbers
+   before a run is written.
 
 ## Quickstart
 
@@ -105,11 +105,11 @@ replays plus about log₂(steps), and no repair function.
 
 Two details matter, and the ablation below measures both:
 
-- **Reuse the recorded noise.** Without it, every re-executed step draws new noise, so a
-  replay can pass or fail for reasons unrelated to the step being tested.
-- **Match calls by content.** A repair can change control flow and move a call to a new
-  position. Counterfact finds the call's recording by name and input fingerprint, not by
-  position alone.
+1. **Reuse the recorded noise.** Without it, every re-executed step draws new noise, so a
+   replay can pass or fail for reasons unrelated to the step being tested.
+2. **Match calls by content.** A repair can change control flow and move a call to a new
+   position. Counterfact finds the call's recording by name and input fingerprint, not by
+   position alone.
 
 More detail is in [docs/how-it-works.md](docs/how-it-works.md).
 
@@ -118,9 +118,9 @@ More detail is in [docs/how-it-works.md](docs/how-it-works.md).
 FaultBench ([docs/faultbench.md](docs/faultbench.md)) has executable agents of three
 kinds:
 
-- a tool-using calculator;
-- a planner/researcher/reviewer team;
-- a retrieval QA pipeline.
+1. a tool-using calculator;
+2. a planner/researcher/reviewer team;
+3. a retrieval QA pipeline.
 
 Each step fails silently with probability 0.12: it returns a wrong value and raises
 nothing. Correct steps vary harmlessly, as model outputs do. Each instance is a failing
@@ -265,22 +265,22 @@ If both keys are set, `COUNTERFACT_JUDGE_PROVIDER` picks the provider.
 
 ## Limits
 
-- **Blame needs a re-runnable agent.** You must be able to call the agent again with the
-  same inputs, and its randomness must come from `cf.rng()` or recorded calls. Put side
-  effects, such as sending an email, behind a boundary so that replays don't repeat them.
-- **Hosted models don't expose their noise.** If a model call's inputs change during a
-  counterfactual, the call is a fresh live sample. For those steps blame behaves like
-  the fresh-noise ablation above. Expect lower accuracy, and raise `samples`.
-- **The repair has to be possible.** The default repair resamples a step. A step that is
-  wrong on every sample, such as one driven by a bad prompt, needs a `Replace` with a
-  known-good value, or a `bisect` against a passing run.
-- **FaultBench is synthetic.** Its ground truth is known by construction, and every run
-  has exactly one fault. The numbers show the mechanism works; they don't measure
-  accuracy on your agent.
-- **The OpenTelemetry GenAI conventions are still in Development status.** They now
-  live in their own repository (`open-telemetry/semantic-conventions-genai`), which has
-  no tagged release yet. Counterfact's attribute names come from semantic-conventions
-  1.41 and may change.
+1. **Blame needs a re-runnable agent.** You must be able to call the agent again with the
+   same inputs, and its randomness must come from `cf.rng()` or recorded calls. Put side
+   effects, such as sending an email, behind a boundary so that replays don't repeat them.
+2. **Hosted models don't expose their noise.** If a model call's inputs change during a
+   counterfactual, the call is a fresh live sample. For those steps blame behaves like
+   the fresh-noise ablation above. Expect lower accuracy, and raise `samples`.
+3. **The repair has to be possible.** The default repair resamples a step. A step that is
+   wrong on every sample, such as one driven by a bad prompt, needs a `Replace` with a
+   known-good value, or a `bisect` against a passing run.
+4. **FaultBench is synthetic.** Its ground truth is known by construction, and every run
+   has exactly one fault. The numbers show the mechanism works; they don't measure
+   accuracy on your agent.
+5. **The OpenTelemetry GenAI conventions are still in Development status.** They now
+   live in their own repository (`open-telemetry/semantic-conventions-genai`), which has
+   no tagged release yet. Counterfact's attribute names come from semantic-conventions
+   1.41 and may change.
 
 ## Development
 
@@ -296,17 +296,17 @@ uv run --extra viz python scripts/make_figures.py       # README figures
 
 ## References
 
-- Judea Pearl. *Causality: Models, Reasoning, and Inference*, 2nd ed. Cambridge
-  University Press, 2009. (Counterfactuals by abduction, action and prediction.)
-- Andreas Zeller and Ralf Hildebrandt. Simplifying and isolating failure-inducing input.
-  *IEEE Transactions on Software Engineering* 28(2), 2002. (Delta debugging, the idea
-  behind `bisect`.)
-- Shaokun Zhang et al. Which agent causes task failures and when? On automated failure
-  attribution of LLM multi-agent systems. *ICML*, 2025. (Failure attribution by reading
-  traces, the setting of the judge baseline.)
-- Edwin B. Wilson. Probable inference, the law of succession, and statistical inference.
-  *Journal of the American Statistical Association* 22(158), 1927. (Confidence intervals.)
-- OpenTelemetry. Semantic conventions for generative AI systems.
+1. Judea Pearl. *Causality: Models, Reasoning, and Inference*, 2nd ed. Cambridge
+   University Press, 2009. (Counterfactuals by abduction, action and prediction.)
+2. Andreas Zeller and Ralf Hildebrandt. Simplifying and isolating failure-inducing input.
+   *IEEE Transactions on Software Engineering* 28(2), 2002. (Delta debugging, the idea
+   behind `bisect`.)
+3. Shaokun Zhang et al. Which agent causes task failures and when? On automated failure
+   attribution of LLM multi-agent systems. *ICML*, 2025. (Failure attribution by reading
+   traces, the setting of the judge baseline.)
+4. Edwin B. Wilson. Probable inference, the law of succession, and statistical inference.
+   *Journal of the American Statistical Association* 22(158), 1927. (Confidence intervals.)
+5. OpenTelemetry. Semantic conventions for generative AI systems.
 
 ## License
 

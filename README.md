@@ -12,7 +12,8 @@ right, and everything else had happened exactly as it did, would the run have pa
 answers by replaying the agent with that one step repaired.
 
 On FaultBench, 180 failing runs with known root causes, this finds the culprit in
-**97%** of runs (95% CI 94% to 99%). Picking the first error or the last step finds it in 18%.
+**97%** of runs (95% CI 94% to 99%). An LLM reading the full trace (gpt-4.1-mini) finds it
+in 63%, and picking the first error or the last step finds it in 18%.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/blame-dark.gif">
@@ -128,7 +129,7 @@ every step against the inputs it received; the methods under test never see them
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/faultbench-dark.png">
-  <img alt="Bar chart of root-cause accuracy on 180 FaultBench runs: Counterfact bisect 100%, Counterfact blame 97%, heuristic suspicion, first error and last step 18% each, random 17%" src="docs/assets/faultbench-light.png" width="100%">
+  <img alt="Bar chart of root-cause accuracy on 180 FaultBench runs: Counterfact bisect 100%, Counterfact blame 97%, LLM judge 63%, heuristic suspicion, first error and last step 18% each, random 17%" src="docs/assets/faultbench-light.png" width="100%">
 </picture>
 
 | Method | Accuracy (95% CI) | calc | rag | team | Replays per run |
@@ -137,6 +138,7 @@ every step against the inputs it received; the methods under test never see them
 | Last step (the symptom) | 18% [13%, 24%] | 15% | 32% | 7% | 0 |
 | First step that raised | 18% [13%, 24%] | 15% | 32% | 7% | 0 |
 | Heuristic suspicion score | 18% [13%, 24%] | 15% | 32% | 7% | 0 |
+| LLM judge reads the trace (gpt-4.1-mini) | 63% [56%, 70%] | 82% | 60% | 48% | 0 |
 | **Counterfact blame** | **97% [94%, 99%]** | 95% | 98% | 98% | 7.3 |
 | **Counterfact bisect** | **100% [98%, 100%]** | 100% | 100% | 100% | 4.7 |
 
@@ -144,9 +146,13 @@ The faults are silent, so "first step that raised" and the suspicion heuristic h
 error to go on and fall back to the last step. That is exactly why silent failures are
 hard to debug from a trace.
 
-There is also an LLM-judge baseline, in which a model reads the full trace and names the
-culprit; it's implemented in [`judge.py`](src/counterfact/judge.py). Its results will be
-added here once it has been run. To run it yourself, see
+The strongest baseline gives a model the full trace, every step's inputs and outputs,
+and asks for the root cause ([`judge.py`](src/counterfact/judge.py)), the usual approach
+to automated failure attribution. gpt-4.1-mini names the right step in 63% of runs: well
+above the heuristics, and best on the short calculator chains (82%). It falls to 48% on
+the research team, where a wrong fact passes through several agents before the answer
+goes wrong, and the trace alone often doesn't show where it started. The run took 180
+calls and about 97,000 input tokens. To rerun it, see
 [Configuring the LLM judge](#configuring-the-llm-judge).
 
 <picture>

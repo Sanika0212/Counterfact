@@ -243,7 +243,7 @@ SHORT = {
     "last": "Last step (the symptom)",
     "first_error": "First step that raised",
     "suspicion": "Heuristic suspicion score",
-    "llm_judge": "LLM judge reads the trace",
+    "llm_judge": "LLM judge (gpt-4.1-mini)",
     "blame": "Counterfact blame",
     "bisect": "Counterfact bisect",
 }

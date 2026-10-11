@@ -8,7 +8,7 @@ authors:
     email: sanikanajan@gmail.com
 version: 0.1.0
 date-released: 2026-10-09
-license: MIT
+license: Apache-2.0
 repository-code: "https://github.com/Sanika0212/Counterfact"
 keywords:
   - llm agents

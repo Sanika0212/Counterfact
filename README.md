@@ -310,4 +310,5 @@ uv run --extra viz python scripts/make_figures.py       # README figures
 
 ## License
 
-MIT © 2026 Sanika Najan. See [LICENSE](LICENSE).
+Apache License 2.0. Copyright 2026 Sanika Najan. See [LICENSE](LICENSE) and
+[NOTICE](NOTICE).
